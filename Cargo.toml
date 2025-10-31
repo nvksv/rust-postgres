@@ -5,7 +5,7 @@ members = [
     "postgres-derive",
     "postgres-derive-test",
     "postgres-native-tls",
-    "postgres-openssl",
+    # "postgres-openssl",
     "postgres-protocol",
     "postgres-types",
     "tokio-postgres",

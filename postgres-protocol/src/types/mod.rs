@@ -62,6 +62,62 @@ pub fn text_from_sql(buf: &[u8]) -> Result<&str, StdBox<dyn Error + Sync + Send>
     Ok(str::from_utf8(buf)?)
 }
 
+#[cfg(feature = "with-mchar")]
+/// Serializes a `MVARCHAR` value.
+#[inline]
+pub fn mvarchar_to_sql(v: &str, buf: &mut BytesMut) {
+    fn to_u8_slice(slice: &[u16]) -> &[u8] {
+        let byte_len = 2*slice.len();
+        unsafe {
+            std::slice::from_raw_parts(
+                slice.as_ptr().cast::<u8>(),
+                byte_len
+            )
+        }
+    }
+
+    let u16_string = widestring::U16String::from_str(v);
+    let u16_slice = u16_string.as_slice();
+    let u8_slice = to_u8_slice(u16_slice);
+    buf.put_slice(u8_slice);
+}
+
+#[cfg(feature = "with-mchar")]
+/// Deserializes a `MVARCHAR` value.
+#[inline]
+pub fn mvarchar_from_sql(buf: &[u8]) -> Result<String, StdBox<dyn Error + Sync + Send>> {
+    #[derive(Debug)]
+    struct MVarCharError {}
+    impl std::fmt::Display for MVarCharError {
+        fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+            write!(f, "MVarCharError")
+        }
+    }
+    impl Error for MVarCharError {}
+
+    if buf.len() % 2 != 0 {
+        return Err(StdBox::new(MVarCharError {}));
+    }
+    let len_in_points = buf.len() / 2;
+
+    let mut u16_vec;
+    let mut u16_ptr = buf.as_ptr().cast::<u16>();
+    if !u16_ptr.is_aligned() {
+        u16_vec = Vec::with_capacity(len_in_points);
+        u16_vec.put_slice(buf);
+        u16_ptr = u16_vec.as_ptr().cast::<u16>();
+        assert!(u16_ptr.is_aligned());
+    }
+
+    let u16_slice = unsafe {
+        std::slice::from_raw_parts(u16_ptr, len_in_points)
+    };
+
+    let u16_str = widestring::U16Str::from_slice(u16_slice);
+    let string = u16_str.to_string()?;
+    Ok(string)
+}
+
 /// Serializes a `"char"` value.
 #[inline]
 pub fn char_to_sql(v: i8, buf: &mut BytesMut) {

@@ -684,10 +684,20 @@ impl<'a> FromSql<'a> for &'a [u8] {
 
 impl<'a> FromSql<'a> for String {
     fn from_sql(ty: &Type, raw: &'a [u8]) -> Result<String, Box<dyn Error + Sync + Send>> {
+        #[cfg(feature = "with-mchar")]
+        if matches!(*ty, Type::MVARCHAR) { 
+            return types::mvarchar_from_sql(raw);
+        }
+
         <&str as FromSql>::from_sql(ty, raw).map(ToString::to_string)
     }
 
     fn accepts(ty: &Type) -> bool {
+        #[cfg(feature = "with-mchar")] 
+        if matches!(*ty, Type::MVARCHAR) { 
+            return true; 
+        }
+
         <&str as FromSql>::accepts(ty)
     }
 }
@@ -1103,6 +1113,9 @@ impl ToSql for Vec<u8> {
 
 impl ToSql for &str {
     fn to_sql(&self, ty: &Type, w: &mut BytesMut) -> Result<IsNull, Box<dyn Error + Sync + Send>> {
+        #[cfg(feature = "with-mchar")] 
+        if matches!(*ty, Type::MVARCHAR) { types::mvarchar_to_sql(self, w) }
+        
         match ty.name() {
             "ltree" => types::ltree_to_sql(self, w),
             "lquery" => types::lquery_to_sql(self, w),
@@ -1113,6 +1126,9 @@ impl ToSql for &str {
     }
 
     fn accepts(ty: &Type) -> bool {
+        #[cfg(feature = "with-mchar")] 
+        if matches!(*ty, Type::MVARCHAR) { return true }
+
         matches!(
             *ty,
             Type::VARCHAR | Type::TEXT | Type::BPCHAR | Type::NAME | Type::UNKNOWN

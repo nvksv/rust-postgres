@@ -198,6 +198,8 @@ pub enum Inner {
     TstzmultiRangeArray,
     DatemultiRangeArray,
     Int8multiRangeArray,
+    #[cfg(feature = "with-mchar")]
+    MVarChar,
     Other(Arc<Other>),
 }
 
@@ -389,6 +391,8 @@ impl Inner {
             6153 => Some(Inner::TstzmultiRangeArray),
             6155 => Some(Inner::DatemultiRangeArray),
             6157 => Some(Inner::Int8multiRangeArray),
+            #[cfg(feature = "with-mchar")]
+            3678125 => Some(Inner::MVarChar),
             _ => None,
         }
     }
@@ -580,6 +584,8 @@ impl Inner {
             Inner::TstzmultiRangeArray => 6153,
             Inner::DatemultiRangeArray => 6155,
             Inner::Int8multiRangeArray => 6157,
+            #[cfg(feature = "with-mchar")]
+            Inner::MVarChar => 3678125,
             Inner::Other(ref u) => u.oid,
         }
     }
@@ -771,6 +777,8 @@ impl Inner {
             Inner::TstzmultiRangeArray => &Kind::Array(Type(Inner::TstzmultiRange)),
             Inner::DatemultiRangeArray => &Kind::Array(Type(Inner::DatemultiRange)),
             Inner::Int8multiRangeArray => &Kind::Array(Type(Inner::Int8multiRange)),
+            #[cfg(feature = "with-mchar")]
+            Inner::MVarChar => &Kind::Simple,
             Inner::Other(ref u) => &u.kind,
         }
     }
@@ -962,6 +970,8 @@ impl Inner {
             Inner::TstzmultiRangeArray => "_tstzmultirange",
             Inner::DatemultiRangeArray => "_datemultirange",
             Inner::Int8multiRangeArray => "_int8multirange",
+            #[cfg(feature = "with-mchar")]
+            Inner::MVarChar => "mvarchar",
             Inner::Other(ref u) => &u.name,
         }
     }
@@ -1521,4 +1531,8 @@ impl Type {
 
     /// INT8MULTIRANGE&#91;&#93;
     pub const INT8MULTI_RANGE_ARRAY: Type = Type(Inner::Int8multiRangeArray);
+
+    /// MVARCHAR
+    #[cfg(feature = "with-mchar")]
+    pub const MVARCHAR: Type = Type(Inner::MVarChar);
 }
